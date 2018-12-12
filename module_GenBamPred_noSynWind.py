@@ -13,6 +13,7 @@ import copy
 import pandas as pd
 import Namelist as gv
 import pandas as pd
+import pdb
 from netCDF4 import Dataset
 from scipy import stats
 from util import argminDatetime
@@ -133,10 +134,11 @@ def bam(iS,block_id=None):
      endhours = fstlon.shape[0]-1
      endDate = climInitDate[b] + timedelta(hours = endhours)
      count,year0,month0,day0 = 1,0,0,0
-     fpath = gv.ipath+gv.Model+'/'+EXP+'/'
+     fpath = gv.ipath+'/'
      while fstDate < endDate:
         if (fstDate.year != year0) :
             fileName = fpath+str(fstDate.year)+'_'+gv.ENS+'.nc'
+            #pdb.set_trace()
             if os.path.isfile(fileName):
                 nc = Dataset(fileName,'r',format='NETCDF3_CLASSIC')
                 u250m = nc.variables['ua2002'][:]
@@ -179,16 +181,21 @@ def bam(iS,block_id=None):
                 v850 = np.nanmean(v850)
                 fstLon, fstLat, fstDate = getTrackPrediction(u250,v250,u850,v850,dt,fstLon,fstLat,fstDate)
                 if ((fstLon<0.0) or (fstLon>360) or (fstLat<-60) or (fstLat>60)):
-                        #print b, 'break for going to the space'
+                        print(b, 'break for going to the space')
                         break
                 fstlon[count,b] = fstLon
                 fstlat[count,b] = fstLat
+                print(gv.ldmask[iy1:iy2+1,ix1:ix2+1])
                 fstldmask[count,b] = np.rint(np.nanmean(gv.ldmask[iy1:iy2+1,ix1:ix2+1]))
                 del u250,u850,v250,v850
                 count += 1
             else:
                 print('no'+fileName)
                 break
+            #print(fstDate, count)
+            #print(endDate, count)
+
+     #pdb.set_trace()
      return b
 
 def get_landmask(filename):
@@ -232,8 +239,11 @@ def getBam(cDate,cLon,cLat,iy,ichaz,exp):
     fstldmask = np.zeros(fstlat.shape)
     diS = da.from_array(np.int32(np.arange(0,nS,1)),chunks=(1,))
     niS = np.int32(np.arange(0,nS,1))
-    new = da.map_blocks(bam,diS,chunks=(1,1))
-    b = new.compute()
+    #new = da.map_blocks(bam,diS,chunks=(1,1))
+    for iiS in niS:
+        # print(niS)
+        b = bam(iiS)
+    #b = new.compute()
     print('removeland')
     fstlon = fstlon[::6,:]
     fstlat = fstlat[::6,:]
